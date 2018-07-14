@@ -286,24 +286,13 @@ AIC(glm4)
 AIC(glmm1)
 AIC(glmm2)
 AIC(glmm3)
-AIC(glmm4)#*
+AIC(glmm4)
 AIC(glmm5)
-AIC(glmm6)
+AIC(glmm6) ###*
 AIC(glmm7)
 
-BIC(glm4) ##
-BIC(glmm1)
-BIC(glmm2)
-BIC(glmm3)
-BIC(glmm4)####*
-BIC(glmm5)
-BIC(glmm6)
-
-anova(glmm0,glmm4)
-
-Anova(glm4)
-Anova(glmm4)
-Anova(glmm7)
+anova(glmm0,glmm6)
+Anova(glmm6)
 summary(glmm4)
 ```
 
@@ -312,7 +301,7 @@ summary(glmm4)
 This is the plot for our proportion hatched data (Figure 6 in paper)
 
 ```{r}
-interaction.plot(data$AgeGroup, data$Treatment, data$PropH, 
+interaction.plot(data$Age.day, data$Stimulus, data$PH.primary, 
                  leg.bty="0", pch=c(18,24), 
                  ylab="Proportion hatched", 
                  xlab="Age (days)", 
@@ -329,7 +318,7 @@ combined_errorstats<- rbind(younger_errorstats, older_errorstats)
 
 The following code creates our figure:
 ```{r}
-ggplot(data=combined_errorstats, aes(x=AgeGroup, y=mean, colour=Treatment)) + 
+ggplot(data=combined_errorstats, aes(x=AgeGroup, y=mean, colour=Stimulus)) + 
   geom_point(size=3) +
   geom_errorbar(data=combined_errorstats, aes(ymin=mean-SE, ymax=mean+SE), width=0.05)+
   theme_bw(20)+
@@ -338,6 +327,8 @@ ggplot(data=combined_errorstats, aes(x=AgeGroup, y=mean, colour=Treatment)) +
   annotate("text", x = 1, y = 0.2, label = "N=##")+
   annotate("text", x = 2, y = 0.4, label = "N=##")
 ```
+
+#NOTE TO SELF: START HERE
 
 Moving on: Here we perform separate binomial GLMs at each age, with grouped categories of treatment stimuli. 
 
