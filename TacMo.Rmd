@@ -85,16 +85,27 @@ library("lme4")
 library("car")
 library("xlsx")
 ```
-
-#### Read in data
+# 2017 TacMo Data
 
 Next, we want to read in the relevant datafile (from the data-reanalysis-assignment repo) and show a few lines of raw data in your output (e.g., using head()).
 
 ```{r}
 #f <- curl("https://raw.githubusercontent.com/jamjulie/data-reanalysis-assignment/master/WarkentinJungRuedaMcDaniel-DataForDeposit.csv")
 #data <- read.csv(f, header = TRUE, sep = ",", stringsAsFactors = TRUE)
-data <- read.csv(file="TacMo_Jung20180714_clean.csv")
-head(data)
+data2017 <- read.csv(file="TacMo_2017_Jung20180714_clean.csv")
+head(data2017)
+```
+
+
+# 2018 TacMo Data
+
+Next, we want to read in the relevant datafile and show a few lines of raw data in your output (e.g., using head()).
+
+```{r}
+#f <- curl("https://raw.githubusercontent.com/jamjulie/data-reanalysis-assignment/master/WarkentinJungRuedaMcDaniel-DataForDeposit.csv")
+#data <- read.csv(f, header = TRUE, sep = ",", stringsAsFactors = TRUE)
+data2018 <- read.csv(file="TacMo_2018_Jung20180714_clean.csv")
+head(data2018)
 ```
 
 ## Results, part I
@@ -104,13 +115,13 @@ Now that we've gone through all our preparations, we can run analyses and report
 First, we will check there are at least 5 eggs per tray. 
 
 ```{r}
-min(data$Test.eggs.primary, na.rm=T) 
+min(data2018$Test.eggs.primary, na.rm=T) 
 ```
 
 Now let's look at the structure of our data, and make sure the variables are defined as we want them to be defined. 
 
 ```{r, warning=FALSE}
-str(data)
+str(data2018)
 #data$ProportionHatched<-as.numeric(as.character(data$ProportionHatched))
 #data$Date<-as.factor(data$Date)
 ```
@@ -118,8 +129,8 @@ str(data)
 Here let's subset the data into 2 age groups: younger and older. 
 
 ```{r, warning=FALSE}
-younger<-subset(data, Age.day==4, na.rm=T)
-older<-subset(data, Age.day==5, na.rm=T)
+younger<-subset(data2018, Age.day==4, na.rm=T)
+older<-subset(data2018, Age.day==5, na.rm=T)
 ```
 
 Since the paper reports the mode of stages for each age category, let's find that: 
@@ -169,10 +180,10 @@ kable(older_errorstats,title="Mean & SD & SE",digits=3)
 Should we use parametric or non-parametric tests?
 
 ```{r}
-hist(data$Stage.avg) # non parametric probably?
-plot(density(data$Stage.avg)) # non parametric yes
-qqnorm(data$Stage.avg); qqline(data$Stage.avg, col = 2) # mhm non parametric definitely
-shapiro.test(data$Stage.avg) # mhm non parametric definitely
+hist(data2018$Stage.avg) # non parametric probably?
+plot(density(data2018$Stage.avg)) # non parametric yes
+qqnorm(data2018$Stage.avg); qqline(data2018$Stage.avg, col = 2) # mhm non parametric definitely
+shapiro.test(data2018$Stage.avg) # mhm non parametric definitely
 ```
 The output of the shapiro-wilk test tells us that it's safe to reject the null hypothesis, which is that the distribution is normal.
 
@@ -181,7 +192,7 @@ We'll use mann-whitney-wilcoxon test because our 2 data samples (younger and old
 Also because our data are non-parametric. 
 
 ```{r, warning=FALSE}
-wtest<-wilcox.test(data$Stage.avg~data$Age.day, mu = 0, alt="two.sided", paired = F, conf.int=T, conf.level=0.95)
+wtest<-wilcox.test(data2018$Stage.avg~data2018$Age.day, mu = 0, alt="two.sided", paired = F, conf.int=T, conf.level=0.95)
 qnorm(wtest$p.value) #z-value to report
 wtest
 ```
@@ -205,8 +216,8 @@ CHANGE THIS TEXT
 Since the data are non-parametric, we'll perform a mann-whitney test: 
 
 ```{r}
-hist(log(data$Already.H)) #non-parametric, even when log transformed --> use a mann-whitney
-wtest<-wilcox.test(data$Already.H~data$Age.day, mu = 0, alt="two.sided", paired = F, conf.int=T, conf.level=0.95)
+hist(log(data2018$Already.H)) #non-parametric, even when log transformed --> use a mann-whitney
+wtest<-wilcox.test(data2018$Already.H~data2018$Age.day, mu = 0, alt="two.sided", paired = F, conf.int=T, conf.level=0.95)
 qnorm(wtest$p.value) #z-value to report
 wtest
 ```
@@ -229,8 +240,8 @@ CHANGE THIS TEXT
 Since the data are non-parametric, we'll perform a mann-whitney test: 
 
 ```{r}
-hist(data$H.in.setup)#non-parametric, mann-whitney
-wtest<-wilcox.test(data$H.in.setup~data$Age.day, mu = 0, alt="two.sided", paired = F, conf.int=T, conf.level=0.95)
+hist(data2018$H.in.setup)#non-parametric, mann-whitney
+wtest<-wilcox.test(data2018$H.in.setup~data2018$Age.day, mu = 0, alt="two.sided", paired = F, conf.int=T, conf.level=0.95)
 qnorm(wtest$p.value) #z-value to report
 wtest
 ```
@@ -258,8 +269,8 @@ CHANGE THIS TEXT
 Since the data are non-parametric, we'll perform a mann-whitney test: 
 
 ```{r}
-hist(data$Test.eggs.primary)#non-parametric, mann-whitney
-wtest<-wilcox.test(data$Test.eggs.primary~data$Age.day, mu = 0, alt="two.sided", paired = F, conf.int=T, conf.level=0.95)
+hist(data2018$Test.eggs.primary)#non-parametric, mann-whitney
+wtest<-wilcox.test(data2018$Test.eggs.primary~data2018$Age.day, mu = 0, alt="two.sided", paired = F, conf.int=T, conf.level=0.95)
 qnorm(wtest$p.value) #z-value to report
 wtest
 ```
@@ -272,15 +283,18 @@ Next, we want to know whether age, stimulus, and/or their interaction affected t
 
 We'll do this by performing a binomial GLMM: 
 ```{r}
-glmm0<-glmer(cbind(Hatch.primary,Test.eggs.primary)~1 + (1|Clutch), family=binomial(logit), data=data, control=glmerControl(optimizer="bobyqa"))
-glm4<-glm(cbind(Hatch.primary,Test.eggs.primary)~Age.day*Stimulus, family=binomial(logit), data=data)
-glmm1<-glmer(cbind(Hatch.primary,Test.eggs.primary)~Age.day+ (1|Clutch), family=binomial(logit), data=data, control=glmerControl(optimizer="bobyqa"))
-glmm2<-glmer(cbind(Hatch.primary,Test.eggs.primary)~Stimulus+ (1|Clutch), family=binomial(logit), data=data, control=glmerControl(optimizer="bobyqa"))
-glmm3<-glmer(cbind(Hatch.primary,Test.eggs.primary)~Age.day+Stimulus+ (1|Clutch), family=binomial(logit), data=data, control=glmerControl(optimizer="bobyqa"))
-glmm4<-glmer(cbind(Hatch.primary,Test.eggs.primary)~Age.day*Stimulus+ (1|Clutch), family=binomial(logit), data=data, control=glmerControl(optimizer="bobyqa")) ###
-glmm5<-glmer(cbind(Hatch.primary,Test.eggs.primary)~Age.day*Stimulus+ (1|Clutch/Tray), family=binomial(logit), data=data, control=glmerControl(optimizer="bobyqa"))
-glmm6<-glmer(cbind(Hatch.primary,Test.eggs.primary)~Age.day*Stimulus+ (1|Date)+(1|Clutch/Tray), family=binomial(logit), data=data, control=glmerControl(optimizer="bobyqa"))
-glmm7<-glmer(cbind(Hatch.primary,Test.eggs.primary)~Age.day*Stimulus+ (1|Age.day/Clutch), family=binomial(logit), data=data, control=glmerControl(optimizer="bobyqa"))
+glmm0<-glmer(cbind(Hatch.primary,Test.eggs.primary)~1 + (1|Clutch), family=binomial(logit), data=data2018, control=glmerControl(optimizer="bobyqa"))
+glm4<-glm(cbind(Hatch.primary,Test.eggs.primary)~Age.day*Stimulus, family=binomial(logit), data=data2018)
+glmm1<-glmer(cbind(Hatch.primary,Test.eggs.primary)~Age.day+ (1|Clutch), family=binomial(logit), data=data2018, control=glmerControl(optimizer="bobyqa"))
+glmm2<-glmer(cbind(Hatch.primary,Test.eggs.primary)~Stimulus+ (1|Clutch), family=binomial(logit), data=data2018, control=glmerControl(optimizer="bobyqa"))
+glmm3<-glmer(cbind(Hatch.primary,Test.eggs.primary)~Age.day+Stimulus+ (1|Clutch), family=binomial(logit), data=data2018, control=glmerControl(optimizer="bobyqa"))
+glmm4<-glmer(cbind(Hatch.primary,Test.eggs.primary)~Age.day*Stimulus+ (1|Clutch), family=binomial(logit), data=data2018, control=glmerControl(optimizer="bobyqa")) ###
+glmm5<-glmer(cbind(Hatch.primary,Test.eggs.primary)~Age.day*Stimulus+ (1|Clutch/Tray), family=binomial(logit), data=data2018, control=glmerControl(optimizer="bobyqa"))
+glmm6<-glmer(cbind(Hatch.primary,Test.eggs.primary)~Age.day*Stimulus+ (1|Date)+(1|Clutch/Tray), family=binomial(logit), data=data2018, control=glmerControl(optimizer="bobyqa"))
+glmm7<-glmer(cbind(Hatch.primary,Test.eggs.primary)~Age.day*Stimulus+ (1|Age.day/Clutch), family=binomial(logit), data=data2018, control=glmerControl(optimizer="bobyqa"))
+
+# bb1<-betabin(cbind(Hatch.primary,Test.eggs.primary)~Stimulus, ~1, data=hatching_data)
+
 #To avoid a warning of nonconvergence, we specify a different optimizer with the argument control=glmerControl(optimizer="bobyqa"). Although the model will produce nearly identical results without the new argument, we prefer to use models without such warnings.
 AIC(glm4)
 AIC(glmm1)
@@ -296,12 +310,13 @@ Anova(glmm6)
 summary(glmm4)
 ```
 
+
 > Age, stimulus, and their interaction affected the hatching response of embryos in playbacks (Fig. 6A). Older embryos hatched more than did younger ones (binomial GLMM with clutch as a random effect, age effect: χ2 = 58.661, df = 1, P=1.873e-14), and the LF stimulus elicited the strongest hatching response (stimulus effect: χ2 = 58.648, df = 2, P=1.839e-13). However, the significant age × stimulus interaction revealed that the developmental increase in hatching was not uniform across stimuli (interaction effect: χ2 = 12.362, df = 2, P = 0.002069). 
 
 This is the plot for our proportion hatched data (Figure 6 in paper)
 
 ```{r}
-interaction.plot(data$Age.day, data$Stimulus, data$PH.primary, 
+interaction.plot(data2018$Age.day, data2018$Stimulus, data2018$PH.primary, 
                  leg.bty="0", pch=c(18,24), 
                  ylab="Proportion hatched", 
                  xlab="Age (days)", 
@@ -318,7 +333,7 @@ combined_errorstats<- rbind(younger_errorstats, older_errorstats)
 
 The following code creates our figure:
 ```{r}
-ggplot(data=combined_errorstats, aes(x=AgeGroup, y=mean, colour=Stimulus)) + 
+ggplot(data2018=combined_errorstats, aes(x=AgeGroup, y=mean, colour=Stimulus)) + 
   geom_point(size=3) +
   geom_errorbar(data=combined_errorstats, aes(ymin=mean-SE, ymax=mean+SE), width=0.05)+
   theme_bw(20)+
@@ -351,8 +366,8 @@ we conducted analyses of latency measured both in time (seconds)
 and in cycles (dividing time by the cycle length of the stimulus). 
 
 ```{r}
-min(data$LtoHsecs1, na.rm=T)
-max(data$LtoHsecs1, na.rm=T)
+min(data2018$LtoHsecs1, na.rm=T)
+max(data2018$LtoHsecs1, na.rm=T)
 ```
 > In trays where hatching occurred, the latency until the first embryo hatched ranged from 9–420 s. 
 
