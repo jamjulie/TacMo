@@ -51,6 +51,10 @@ Mode <- function(x) {
   ux[which.max(tabulate(match(x, ux)))]
 }
 
+stderr <- function(vec) #std dev/sample size
+{
+  return(sd(vec)/sqrt(length(vec)))
+}
 ```
 
 #### Load packages
@@ -129,22 +133,22 @@ str(data2018)
 Here let's subset the data into 2 age groups: younger and older. 
 
 ```{r, warning=FALSE}
-younger<-subset(data2018, Age.day==4, na.rm=T)
-older<-subset(data2018, Age.day==5, na.rm=T)
+younger2018<-subset(data2018, Age.day==4, na.rm=T)
+older2018<-subset(data2018, Age.day==5, na.rm=T)
 ```
 
 Since the paper reports the mode of stages for each age category, let's find that: 
 
 ```{r}
-youngerstages<- rbind(younger$Stage1, younger$Stage2, younger$Stage3)
-olderstages<- rbind(older$Stage1, older$Stage2, older$Stage3)
-range(youngerstages)
-range(olderstages)
-Mode(youngerstages)
-Mode(olderstages)
+youngerstages2018<- rbind(younger2018$Stage1, younger2018$Stage2, younger2018$Stage3)
+olderstages2018<- rbind(older2018$Stage1, older2018$Stage2, older2018$Stage3)
+range(youngerstages2018)
+range(olderstages2018)
+Mode(youngerstages2018)
+Mode(olderstages2018)
 
-#Mode(younger$Stage.avg)
-#Mode(older$Stage.avg)
+#Mode(younger2018$Stage.avg)
+#Mode(older2018$Stage.avg)
 ```
 
 > Younger embryos showed a range of stages from 20 to 31 while older embryos had 29 to 34 (N = 63 and 63; modes: 29 and 31).
@@ -154,27 +158,27 @@ Mode(olderstages)
 Here we'll create a table summary of statistics for hatching rates (in proportion hatched) for each age category, grouped by stimulus treatment. We use the {dplyr} package to summarize our data. 
 
 ```{r}
-younger_errorstats<-
-  younger %>%
+younger_errorstats2018<-
+  younger2018 %>%
   group_by(Stimulus) %>%
   summarize(count = n(),
             mean = mean(PH.primary),
             SD = sd(PH.primary), 
             SE = sd(PH.primary)/sqrt(n())
             )
-younger_errorstats$AgeGroup <- 4
-kable(younger_errorstats,title="Mean & SD & SE",digits=3)
+younger_errorstats2018$AgeGroup <- 4
+kable(younger_errorstats2018,title="Mean & SD & SE",digits=3)
 
-older_errorstats<-
-  older %>%
+older_errorstats2018<-
+  older2018 %>%
   group_by(Stimulus) %>%
   summarize(count = n(),
             mean = mean(PH.primary),
             SD = sd(PH.primary), 
             SE = sd(PH.primary)/sqrt(n())
             )
-older_errorstats$AgeGroup <- 5
-kable(older_errorstats,title="Mean & SD & SE",digits=3)
+older_errorstats2018$AgeGroup <- 5
+kable(older_errorstats2018,title="Mean & SD & SE",digits=3)
 ```
 
 Should we use parametric or non-parametric tests?
@@ -183,7 +187,7 @@ Should we use parametric or non-parametric tests?
 hist(data2018$Stage.avg) # non parametric probably?
 plot(density(data2018$Stage.avg)) # non parametric yes
 qqnorm(data2018$Stage.avg); qqline(data2018$Stage.avg, col = 2) # mhm non parametric definitely
-shapiro.test(data2018$Stage.avg) # mhm non parametric definitely
+shapiro.test(data2018$Stage.avg) # mhm non parametric definitely (<0.05)
 ```
 The output of the shapiro-wilk test tells us that it's safe to reject the null hypothesis, which is that the distribution is normal.
 
@@ -204,10 +208,10 @@ CHANGE INFO BELOW (i copy pasted from another script)
 Embryos also hatched spontaneously between test ages, so we want to calculate some means and SEs for spontaneous hatching before the test period. 
 
 ```{r}
-mean(younger$Already.H)
-se(younger$Already.H)
-mean(older$Already.H)
-se(older$Already.H)
+mean(younger2018$Already.H)
+se(younger2018$Already.H)
+mean(older2018$Already.H)
+se(older2018$Already.H)
 ```
 
 CHANGE THIS TEXT
@@ -229,10 +233,10 @@ CHANGE THIS TEXT
 Now we'll look at the number of embryos that hatched at set up: 
 
 ```{r}
-mean(younger$H.in.setup)
-se(younger$H.in.setup)
-mean(older$H.in.setup)
-se(older$H.in.setup)
+mean(younger2018$H.in.setup)
+se(younger2018$H.in.setup)
+mean(older2018$H.in.setup)
+se(older2018$H.in.setup)
 ```
 CHANGE THIS TEXT
 > More of the older embryos hatched during setup and acclimation (2.5 ± 0.3 vs. 0.9 ± 0.2 per tray). 
@@ -253,15 +257,15 @@ We want to calculate some means and ses for the number of test eggs per tray in 
 
 ```{r}
 #smaller number of test eggs per tray in older than younger
-mean(younger$Test.eggs.primary)
-se(younger$Test.eggs.primary)
-mean(older$Test.eggs.primary)
-se(older$Test.eggs.primary)
+mean(younger2018$Test.eggs.primary)
+se(younger2018$Test.eggs.primary)
+mean(older2018$Test.eggs.primary)
+se(older2018$Test.eggs.primary)
 
-min(younger$Test.eggs.primary)
-max(younger$Test.eggs.primary)
-min(older$Test.eggs.primary)
-max(older$Test.eggs.primary)
+min(younger2018$Test.eggs.primary)
+max(younger2018$Test.eggs.primary)
+min(older2018$Test.eggs.primary)
+max(older2018$Test.eggs.primary)
 ```
 CHANGE THIS TEXT
 > This resulted in smaller numbers of test eggs per tray (older 11.5 ± 0.3, younger 13.5 ± 0.2, range 8–15 at both ages). 
@@ -326,35 +330,34 @@ interaction.plot(data2018$Age.day, data2018$Stimulus, data2018$PH.primary,
 ALTERNATIVELY, we can use ggplot to create a much prettier plot, with standard errors. 
 
 ```{r}
-younger_errorstats$AgeGroup<-as.factor(younger_errorstats$AgeGroup)
-older_errorstats$AgeGroup<-as.factor(older_errorstats$AgeGroup)
-combined_errorstats<- rbind(younger_errorstats, older_errorstats)
+younger_errorstats2018$AgeGroup<-as.factor(younger_errorstats2018$AgeGroup)
+older_errorstats2018$AgeGroup<-as.factor(older_errorstats2018$AgeGroup)
+combined_errorstats2018<- rbind(younger_errorstats2018, older_errorstats2018)
 ```
 
 The following code creates our figure:
 ```{r}
-ggplot(data2018=combined_errorstats, aes(x=AgeGroup, y=mean, colour=Stimulus)) + 
+ggplot(data=combined_errorstats2018, aes(x=AgeGroup, y=mean, colour=Stimulus)) + 
   geom_point(size=3) +
-  geom_errorbar(data=combined_errorstats, aes(ymin=mean-SE, ymax=mean+SE), width=0.05)+
+  geom_errorbar(data=combined_errorstats2018, aes(ymin=mean-SE, ymax=mean+SE), width=0.05)+
   theme_bw(20)+
   ylab("Proportion of tray hatched\n")+
-  xlab("\n Age (d)")+
-  annotate("text", x = 1, y = 0.2, label = "N=##")+
-  annotate("text", x = 2, y = 0.4, label = "N=##")
+  xlab("\n Age (d)")
+  #annotate("text", x = 1, y = 0.2, label = "N=##")+
+  #annotate("text", x = 2, y = 0.4, label = "N=##")
 ```
-
-#NOTE TO SELF: START HERE
 
 Moving on: Here we perform separate binomial GLMs at each age, with grouped categories of treatment stimuli. 
 
 ```{r}
+
 #binomial glm for YOUNGER
-glmm2<-glmer(cbind(EP3m,EP5)~Treatment+ (1|Clutch), family=binomial(logit), data=younger)
-Anova(glmm2)
+temp<-glmer(cbind(Hatch.primary,Test.eggs.primary)~Stimulus+ (1|Clutch), family=binomial(logit), data=younger2018, control=glmerControl(optimizer="bobyqa"))
+Anova(temp)
 
 #binomial glm for OLDER
-glmm2<-glmer(cbind(EP3m,EP5)~Treatment+ (1|Clutch), family=binomial(logit), data=older)
-Anova(glmm2)
+temp<-glmer(cbind(Hatch.primary,Test.eggs.primary)~Stimulus+ (1|Clutch), family=binomial(logit), data=older2018, control=glmerControl(optimizer="bobyqa"))
+Anova(temp)
 ```
 > Younger embryos showed equally little response to both the HF and LS stimuli but a substantial hatching response to the LF stimulus (Fig. 6A, stimulus effect: χ2 = 57.57, df = 2, P < 0.0001; HF–LS contrast χ2  = 1.48, P = 0.22; (HF+LS)–LF contrast χ2 = 370 56.75, P < 0.0001). In contrast, older embryos showed similarly strong hatching responses to both LF and LS stimuli and a weaker response to the HF stimulus (stimulus effect: χ2 = 73.84, df = 2, P < 0.0001; LF–LS contrast χ2 = 2.46, P = 0.12; (LF+LS)–HF contrast χ2 = 71.61, P < 0.0001). 
 
@@ -366,16 +369,16 @@ we conducted analyses of latency measured both in time (seconds)
 and in cycles (dividing time by the cycle length of the stimulus). 
 
 ```{r}
-min(data2018$LtoHsecs1, na.rm=T)
-max(data2018$LtoHsecs1, na.rm=T)
+#min(data2018$Con1, na.rm=T)
+#max(data2018$Con1, na.rm=T)
 ```
 > In trays where hatching occurred, the latency until the first embryo hatched ranged from 9–420 s. 
 
 Are our data parametric?
 
 ```{r}
-hist(data$LtoHsecs1) #nonparametric
-hist(log(data$LtoHsecs1)) #parametric!
+hist(data2018$Con1) #nonparametric
+hist(log(data2018$Con1)) #parametric!
 ```
 Since they are, we can use ANOVAs of log-transformed data to test for 
 effects of age, stimulus and age-by-stimulus interaction 
@@ -383,7 +386,7 @@ on the latency to hatch.
 
 ```{r}
 # IN SECONDS, Anova
-aov1 <- aov(log(LtoHsecs1) ~ AgeGroup*Treatment, data=data)
+aov1 <- aov(log(Con1) ~ Age.day*Stimulus, data=data2018)
 summary(aov1)
 ```
 > Latency varied among stimuli and decreased with age, with a marginally non-significant interaction effect (Fig. 6B,C). This pattern held whether measuring latency in seconds or in cycles of vibration (seconds: age, F1,58 = 39.52, P < 0.0001; stimulus, F2,58 = 13.72, P < 0.0001; interaction, F2,58 = 2.91, P = 0.0625; cycles: age, F1,58 = 49.54, P < 0.0001; stimulus, F2,58 = 71.89, P < 0.0001; interaction, F2,58 = 2.91, P = 0.0625).
@@ -392,10 +395,10 @@ Alternatively, we can use GLMs:
 
 ```{r}
 # IN SECONDS, GLM METHOD
-glmm1<-glmer(LtoHsecs1~AgeGroup+ (1|Clutch), family=gaussian(link = "identity"), data=data)
-glmm2<-glmer(LtoHsecs1~Treatment+ (1|Clutch), family=gaussian(link = "identity"), data=data)
-glmm3<-glmer(LtoHsecs1~AgeGroup+Treatment+ (1|Clutch), family=gaussian(link = "identity"), data=data)
-glmm4<-glmer(LtoHsecs1~AgeGroup*Treatment+ (1|Clutch), family=gaussian(link = "identity"), data=data)
+glmm1<-glmer(Con1~Age.day+ (1|Clutch), family=gaussian(link = "identity"), data=data2018)
+glmm2<-glmer(Con1~Stimulus+ (1|Clutch), family=gaussian(link = "identity"), data=data2018)
+glmm3<-glmer(Con1~Age.day+Stimulus+ (1|Clutch), family=gaussian(link = "identity"), data=data2018)
+glmm4<-glmer(Con1~Age.day*Stimulus+ (1|Clutch), family=gaussian(link = "identity"), data=data2018)
 
 glmms<-list(glmm1, glmm2, glmm3, glmm4)
 #aictab(glms)
@@ -406,40 +409,40 @@ Anova(glmm4)
 Here we plot the latencies for the first embryo in each tray to hatch: 
 
 ```{r}
-LtoH_younger_errorstats<-
-  younger %>%
-  group_by(Treatment) %>%
+LtoH_younger_errorstats2018<-
+  younger2018 %>%
+  group_by(Stimulus) %>%
   summarize(count = n(),
-            mean = mean(LtoHsecs1, na.rm=T),
-            SD = sd(LtoHsecs1, na.rm=T), 
-            SE = sd(LtoHsecs1, na.rm=T)/sqrt(n())
+            mean = mean(Con1, na.rm=T),
+            SD = sd(Con1, na.rm=T), 
+            SE = sd(Con1, na.rm=T)/sqrt(n())
             )
-LtoH_younger_errorstats$AgeGroup <- "5"
-kable(LtoH_younger_errorstats,title="Mean & SD & SE",digits=3)
+LtoH_younger_errorstats2018$AgeGroup <- "4"
+kable(LtoH_younger_errorstats2018,title="Mean & SD & SE",digits=3)
 
-LtoH_older_errorstats<-
-  older %>%
-  group_by(Treatment) %>%
+LtoH_older_errorstats2018<-
+  older2018 %>%
+  group_by(Stimulus) %>%
   summarize(count = n(),
-            mean = mean(LtoHsecs1, na.rm=T),
-            SD = sd(LtoHsecs1, na.rm=T), 
-            SE = sd(LtoHsecs1, na.rm=T)/sqrt(n())
+            mean = mean(Con1, na.rm=T),
+            SD = sd(Con1, na.rm=T), 
+            SE = sd(Con1, na.rm=T)/sqrt(n())
             )
-LtoH_older_errorstats$AgeGroup <- "6"
-kable(LtoH_older_errorstats,title="Mean & SD & SE",digits=3)
+LtoH_older_errorstats2018$AgeGroup <- "5"
+kable(LtoH_older_errorstats2018,title="Mean & SD & SE",digits=3)
 ```
 
 Now we can make the plot! 
 
 ```{r}
-LtoH_combined_errorstats<- rbind(LtoH_younger_errorstats, LtoH_older_errorstats)
+LtoH_combined_errorstats2018<- rbind(LtoH_younger_errorstats2018, LtoH_older_errorstats2018)
 ```
 
 The following code creates our figure:
 ```{r}
-ggplot(data=LtoH_combined_errorstats, aes(x=AgeGroup, y=mean, colour=Treatment)) + 
+ggplot(data=LtoH_combined_errorstats2018, aes(x=AgeGroup, y=mean, colour=Stimulus)) + 
   geom_point(size=3) +
-  geom_errorbar(data=LtoH_combined_errorstats, aes(ymin=mean-SE, ymax=mean+SE), width=0.05)+
+  geom_errorbar(data=LtoH_combined_errorstats2018, aes(ymin=mean-SE, ymax=mean+SE), width=0.05)+
   theme_bw(20)+
   ylab("Latency to hatch (seconds)\n")+
   xlab("\n Age (d)")
@@ -448,19 +451,20 @@ ggplot(data=LtoH_combined_errorstats, aes(x=AgeGroup, y=mean, colour=Treatment))
 
 
 ```{r}
-scary<-subset(data, Treatment=="1 to 30", na.rm=T)
-ambig<-subset(data, Treatment=="1 to 200", na.rm=T)
-nonscary<-subset(data, Treatment=="30 to 300", na.rm=T)
+str(data2018)
+MotionOnly<-subset(data2018, Stimulus=="M-only", na.rm=T)
+TactileOnly<-subset(data2018, Stimulus=="T-only", na.rm=T)
+MotionTactile<-subset(data2018, Stimulus=="M+T", na.rm=T)
 
-scary_younger<-subset(scary, AgeGroup==5, na.rm=T)
-scary_older<-subset(scary, AgeGroup==6, na.rm=T)
-ambig_younger<-subset(ambig, AgeGroup==5, na.rm=T)
-ambig_older<-subset(ambig, AgeGroup==6, na.rm=T)
-nonscary_younger<-subset(nonscary, AgeGroup==5, na.rm=T)
-nonscary_older<-subset(nonscary, AgeGroup==6, na.rm=T)
+motion_younger<-subset(MotionOnly, Age.day==4, na.rm=T)
+motion_older<-subset(MotionOnly, Age.day==5, na.rm=T)
+tactile_younger<-subset(TactileOnly, Age.day==4, na.rm=T)
+tactile_older<-subset(TactileOnly, Age.day==5, na.rm=T)
+mt_younger<-subset(MotionTactile, Age.day=4, na.rm=T)
+mt_older<-subset(MotionTactile, Age.day==5, na.rm=T)
 
-mean(scary_older$LtoHsecs1, na.rm=T)
-se(scary_older$LtoHsecs1, na.rm=T)
+mean(mt_older$Con1, na.rm=T)
+se(mt_older$Con1, na.rm=T)
 
 ```
 > The shortest latency times were for the LF stimulus (younger: 39.5 ± 10.1 s; older 18.6 ± 1.9 s), 
@@ -473,14 +477,14 @@ We conducted analyses of latency both on the subset of trays from which at least
 ```{r}
 
 # IN SECONDS, Anova
-aov1 <- aov(LtoHsecs1_600 ~ AgeGroup*Treatment, data=data)
+aov1 <- aov(Con1_600 ~ Age.day*Stimulus, data=data2018) ##create this column
 summary(aov1)
 
 # IN SECONDS, GLM METHOD
-glmm1<-glmer(LtoHsecs1_600~AgeGroup+ (1|Clutch), family=gaussian(link = "identity"), data=data)
-glmm2<-glmer(LtoHsecs1_600~Treatment+ (1|Clutch), family=gaussian(link = "identity"), data=data)
-glmm3<-glmer(LtoHsecs1_600~AgeGroup+Treatment+ (1|Clutch), family=gaussian(link = "identity"), data=data)
-glmm4<-glmer(LtoHsecs1_600~AgeGroup*Treatment+ (1|Clutch), family=gaussian(link = "identity"), data=data)
+glmm1<-glmer(Con1_600~Age.day+ (1|Clutch), family=gaussian(link = "identity"), data=data2018)
+glmm2<-glmer(Con1_600~Stimulus+ (1|Clutch), family=gaussian(link = "identity"), data=data2018)
+glmm3<-glmer(Con1_600~Age.day+Stimulus+ (1|Clutch), family=gaussian(link = "identity"), data=data2018)
+glmm4<-glmer(Con1_600~Age.day*Stimulus+ (1|Clutch), family=gaussian(link = "identity"), data=data2018)
 
 glmms<-list(glmm1, glmm2, glmm3, glmm4)
 #aictab(glms)
@@ -493,16 +497,16 @@ Anova(glmm4)
 ## MEAN Latency of ALL eggs, not just the first to hatch
 
 ```{r}
-min(data$MeanLtoH, na.rm=T)
-max(data$MeanLtoH, na.rm=T)
+min(data2018$MeanLtoH, na.rm=T)
+max(data2018$MeanLtoH, na.rm=T)
 ```
 > For all embryos that hatched within a 5 minute stimulus duration, the mean latency to hatch ranged from 15 to 240 s. 
 
 Are our data parametric?
 
 ```{r}
-hist(data$MeanLtoH) 
-hist(log(data$MeanLtoH)) #parametric enough!
+hist(data2018$MeanLtoH) 
+hist(log(data2018$MeanLtoH)) #parametric enough!
 ```
 Since they are, we can use ANOVAs of log-transformed data to test for 
 effects of age, stimulus and age-by-stimulus interaction 
@@ -510,7 +514,7 @@ on the latency to hatch.
 
 ```{r}
 # IN SECONDS, Anova
-aov1 <- aov(log(MeanLtoH) ~ AgeGroup*Treatment, data=data)
+aov1 <- aov(log(MeanLtoH) ~ Age.day*Stimulus, data=data2018)
 summary(aov1)
 ```
 > Latency did not vary among stimuli but decreased with age, with a non-significant interaction effect (Fig. 6B,C) (age, F1,114 = 33.737, P = 5.81e-8; stimulus, F2,114 = 1.668, P = 0.193; interaction, F2,114 = 1.792, P = 0.171).
@@ -519,10 +523,10 @@ Alternatively, we can use GLMs:
 
 ```{r}
 # IN SECONDS, GLM METHOD
-glmm1<-glmer(MeanLtoH~AgeGroup+ (1|Clutch), family=gaussian(link = "identity"), data=data)
-glmm2<-glmer(MeanLtoH~Treatment+ (1|Clutch), family=gaussian(link = "identity"), data=data)
-glmm3<-glmer(MeanLtoH~AgeGroup+Treatment+ (1|Clutch), family=gaussian(link = "identity"), data=data)
-glmm4<-glmer(MeanLtoH~AgeGroup*Treatment+ (1|Clutch), family=gaussian(link = "identity"), data=data)
+glmm1<-glmer(MeanLtoH~Age.day+ (1|Clutch), family=gaussian(link = "identity"), data=data2018)
+glmm2<-glmer(MeanLtoH~Stimulus+ (1|Clutch), family=gaussian(link = "identity"), data=data2018)
+glmm3<-glmer(MeanLtoH~Age.day+Stimulus+ (1|Clutch), family=gaussian(link = "identity"), data=data2018)
+glmm4<-glmer(MeanLtoH~Age.day*Stimulus+ (1|Clutch), family=gaussian(link = "identity"), data=data2018)
 
 glmms<-list(glmm1, glmm2, glmm3, glmm4)
 #aictab(glms)
@@ -533,40 +537,40 @@ Anova(glmm4)
 Here we plot the latencies for the first embryo in each tray to hatch: 
 
 ```{r}
-LtoH_younger_errorstats<-
-  younger %>%
-  group_by(Treatment) %>%
+LtoH_younger_errorstats2018<-
+  younger2018 %>%
+  group_by(Stimulus) %>%
   summarize(count = n(),
             mean = mean(MeanLtoH, na.rm=T),
             SD = sd(MeanLtoH, na.rm=T), 
             SE = sd(MeanLtoH, na.rm=T)/sqrt(n())
             )
-LtoH_younger_errorstats$AgeGroup <- "5"
-kable(LtoH_younger_errorstats,title="Mean & SD & SE",digits=3)
+LtoH_younger_errorstats2018$AgeGroup <- "4"
+kable(LtoH_younger_errorstats2018,title="Mean & SD & SE",digits=3)
 
-LtoH_older_errorstats<-
-  older %>%
-  group_by(Treatment) %>%
+LtoH_older_errorstats2018<-
+  older2018 %>%
+  group_by(Stimulus) %>%
   summarize(count = n(),
             mean = mean(MeanLtoH, na.rm=T),
             SD = sd(MeanLtoH, na.rm=T), 
             SE = sd(MeanLtoH, na.rm=T)/sqrt(n())
             )
-LtoH_older_errorstats$AgeGroup <- "6"
-kable(LtoH_older_errorstats,title="Mean & SD & SE",digits=3)
+LtoH_older_errorstats2018$AgeGroup <- "5"
+kable(LtoH_older_errorstats2018,title="Mean & SD & SE",digits=3)
 ```
 
 Now we can make the plot! 
 
 ```{r}
-LtoH_combined_errorstats<- rbind(LtoH_younger_errorstats, LtoH_older_errorstats)
+LtoH_combined_errorstats2018<- rbind(LtoH_younger_errorstats2018, LtoH_older_errorstats2018)
 ```
 
 The following code creates our figure (for the mean latency to hatch of the eggs that hatching per tray)
 ```{r}
-ggplot(data=LtoH_combined_errorstats, aes(x=AgeGroup, y=mean, colour=Treatment)) + 
+ggplot(data=LtoH_combined_errorstats2018, aes(x=Age.day, y=mean, colour=Stimulus)) + 
   geom_point(size=3) +
-  geom_errorbar(data=LtoH_combined_errorstats, aes(ymin=mean-SE, ymax=mean+SE), width=0.05)+
+  geom_errorbar(data=LtoH_combined_errorstats2018, aes(ymin=mean-SE, ymax=mean+SE), width=0.05)+
   theme_bw(20)+
   ylab("Latency to hatch (seconds)\n")+
   xlab("\n Age (d)")
@@ -574,21 +578,10 @@ ggplot(data=LtoH_combined_errorstats, aes(x=AgeGroup, y=mean, colour=Treatment))
 
 
 ```{r}
-scary<-subset(data, Treatment=="1 to 30", na.rm=T)
-ambig<-subset(data, Treatment=="1 to 200", na.rm=T)
-nonscary<-subset(data, Treatment=="30 to 300", na.rm=T)
-
-scary_younger<-subset(scary, AgeGroup==5, na.rm=T)
-scary_older<-subset(scary, AgeGroup==6, na.rm=T)
-ambig_younger<-subset(ambig, AgeGroup==5, na.rm=T)
-ambig_older<-subset(ambig, AgeGroup==6, na.rm=T)
-nonscary_younger<-subset(nonscary, AgeGroup==5, na.rm=T)
-nonscary_older<-subset(nonscary, AgeGroup==6, na.rm=T)
-
-mean(scary_older$MeanLtoH, na.rm=T)
-se(scary_older$MeanLtoH, na.rm=T)
-
+mean(mt_older$MeanLtoH, na.rm=T)
+se(mt_older$MeanLtoH, na.rm=T)
 ```
+
 > The shortest latency times were for the LF stimulus (younger: 39.5 ± 10.1 s; older 18.6 ± 1.9 s), 
  while latencies for the LS stimulus included the fewest cycles of the vibration pattern 
 (younger: 6.5 ± 1.6; older: 1.9 ± 0.3 cycles). 
@@ -596,16 +589,16 @@ se(scary_older$MeanLtoH, na.rm=T)
 ## MEDIAN Latency of ALL eggs, not just the first to hatch
 
 ```{r}
-min(data$MedianLtoH, na.rm=T)
-max(data$MedianLtoH, na.rm=T)
+min(data2018$MedianLtoH, na.rm=T)
+max(data2018$MedianLtoH, na.rm=T)
 ```
 > For all embryos that hatched within a 5 minute stimulus duration, the median latency to hatch ranged from 15 to 240 s. 
 
 Are our data parametric?
 
 ```{r}
-hist(data$MedianLtoH) 
-hist(log(data$MedianLtoH)) #parametric enough!
+hist(data2018$MedianLtoH) 
+hist(data2018(data$MedianLtoH)) #parametric enough!
 ```
 
 Since they are, we can use ANOVAs of log-transformed data to test for 
@@ -614,7 +607,7 @@ on the latency to hatch.
 
 ```{r}
 # IN SECONDS, Anova
-aov1 <- aov(log(MedianLtoH) ~ AgeGroup*Treatment, data=data)
+aov1 <- aov(log(MedianLtoH) ~ Age.day*Stimulus, data=data2018)
 summary(aov1)
 ```
 
@@ -624,10 +617,10 @@ Alternatively, we can use GLMs:
 
 ```{r}
 # IN SECONDS, GLM METHOD
-glmm1<-glmer(MedianLtoH~AgeGroup+ (1|Clutch), family=gaussian(link = "identity"), data=data)
-glmm2<-glmer(MedianLtoH~Treatment+ (1|Clutch), family=gaussian(link = "identity"), data=data)
-glmm3<-glmer(MedianLtoH~AgeGroup+Treatment+ (1|Clutch), family=gaussian(link = "identity"), data=data)
-glmm4<-glmer(MedianLtoH~AgeGroup*Treatment+ (1|Clutch), family=gaussian(link = "identity"), data=data)
+glmm1<-glmer(MedianLtoH~Age.day+ (1|Clutch), family=gaussian(link = "identity"), data=data2018)
+glmm2<-glmer(MedianLtoH~Stimulus+ (1|Clutch), family=gaussian(link = "identity"), data=data2018)
+glmm3<-glmer(MedianLtoH~Age.day+Stimulus+ (1|Clutch), family=gaussian(link = "identity"), data=data2018)
+glmm4<-glmer(MedianLtoH~Age.day*Stimulus+ (1|Clutch), family=gaussian(link = "identity"), data=data2018)
 
 glmms<-list(glmm1, glmm2, glmm3, glmm4)
 #aictab(glms)
@@ -638,61 +631,48 @@ Anova(glmm4)
 Here we plot the latencies for the first embryo in each tray to hatch: 
 
 ```{r}
-LtoH_younger_errorstats<-
-  younger %>%
-  group_by(Treatment) %>%
+LtoH_younger_errorstats2018<-
+  younger2018 %>%
+  group_by(Stimulus) %>%
   summarize(count = n(),
             mean = mean(MedianLtoH, na.rm=T),
             SD = sd(MedianLtoH, na.rm=T), 
             SE = sd(MedianLtoH, na.rm=T)/sqrt(n())
             )
-LtoH_younger_errorstats$AgeGroup <- "5"
-kable(LtoH_younger_errorstats,title="Mean & SD & SE",digits=3)
+LtoH_younger_errorstats2018$AgeGroup <- "4"
+kable(LtoH_younger_errorstats2018,title="Mean & SD & SE",digits=3)
 
-LtoH_older_errorstats<-
+LtoH_older_errorstats2018<-
   older %>%
-  group_by(Treatment) %>%
+  group_by(Stimulus) %>%
   summarize(count = n(),
             mean = mean(MedianLtoH, na.rm=T),
             SD = sd(MedianLtoH, na.rm=T), 
             SE = sd(MedianLtoH, na.rm=T)/sqrt(n())
             )
-LtoH_older_errorstats$AgeGroup <- "6"
-kable(LtoH_older_errorstats,title="Mean & SD & SE",digits=3)
+LtoH_older_errorstats2018$AgeGroup <- "5"
+kable(LtoH_older_errorstats2018,title="Mean & SD & SE",digits=3)
 ```
 
 Now we can make the plot! 
 
 ```{r}
-LtoH_combined_errorstats<- rbind(LtoH_younger_errorstats, LtoH_older_errorstats)
+LtoH_combined_errorstats2018<- rbind(LtoH_younger_errorstats2018, LtoH_older_errorstats2018)
 ```
 
 The following code creates our figure (for the mean latency to hatch of the eggs that hatching per tray)
 ```{r}
-ggplot(data=LtoH_combined_errorstats, aes(x=AgeGroup, y=mean, colour=Treatment)) + 
+ggplot(data=LtoH_combined_errorstats2018, aes(x=AgeGroup, y=mean, colour=Stimulus)) + 
   geom_point(size=3) +
-  geom_errorbar(data=LtoH_combined_errorstats, aes(ymin=mean-SE, ymax=mean+SE), width=0.05)+
+  geom_errorbar(data=LtoH_combined_errorstats2018, aes(ymin=mean-SE, ymax=mean+SE), width=0.05)+
   theme_bw(20)+
   ylab("Latency to hatch (seconds)\n")+
   xlab("\n Age (d)")
 ```
 
-
 ```{r}
-scary<-subset(data, Treatment=="1 to 30", na.rm=T)
-ambig<-subset(data, Treatment=="1 to 200", na.rm=T)
-nonscary<-subset(data, Treatment=="30 to 300", na.rm=T)
-
-scary_younger<-subset(scary, AgeGroup==5, na.rm=T)
-scary_older<-subset(scary, AgeGroup==6, na.rm=T)
-ambig_younger<-subset(ambig, AgeGroup==5, na.rm=T)
-ambig_older<-subset(ambig, AgeGroup==6, na.rm=T)
-nonscary_younger<-subset(nonscary, AgeGroup==5, na.rm=T)
-nonscary_older<-subset(nonscary, AgeGroup==6, na.rm=T)
-
-mean(scary_older$MedianLtoH, na.rm=T)
-se(scary_older$MedianLtoH, na.rm=T)
-
+mean(mt_older$MedianLtoH, na.rm=T)
+se(mt_older$MedianLtoH, na.rm=T)
 ```
 > The shortest latency times were for the LF stimulus (younger: 39.5 ± 10.1 s; older 18.6 ± 1.9 s), 
  while latencies for the LS stimulus included the fewest cycles of the vibration pattern 
@@ -701,16 +681,16 @@ se(scary_older$MedianLtoH, na.rm=T)
 ## RANGE Latency of ALL eggs, not just the first to hatch
 
 ```{r}
-min(data$RangeLtoH, na.rm=T)
-max(data$RangeLtoH, na.rm=T)
+min(data2018$RangeLtoH, na.rm=T)
+max(data2018$RangeLtoH, na.rm=T)
 ```
 > For all embryos that hatched within a 5 minute stimulus duration, the range for latencies to hatch in the tray ranged from 0 to 283 s. 
 
 Are our data parametric?
 
 ```{r}
-hist(data$RangeLtoH) 
-hist(log(data$RangeLtoH)) #not parametric
+hist(data2018$RangeLtoH) 
+hist(log(data2018$RangeLtoH)) #not parametric
 ```
 
 Since they are, we can use ANOVAs of log-transformed data to test for 
@@ -719,7 +699,7 @@ on the latency to hatch.
 
 ```{r}
 # IN SECONDS, Anova
-aov1 <- aov(log(RangeLtoH) ~ AgeGroup*Treatment, data=data)
+aov1 <- aov(log(RangeLtoH) ~ Age.day*Stimulus, data=data2018)
 summary(aov1)
 ```
 
@@ -729,10 +709,10 @@ Alternatively, we can use GLMs:
 
 ```{r}
 # IN SECONDS, GLM METHOD
-glmm1<-glmer(RangeLtoH~AgeGroup+ (1|Clutch), family=gaussian(link = "identity"), data=data)
-glmm2<-glmer(RangeLtoH~Treatment+ (1|Clutch), family=gaussian(link = "identity"), data=data)
-glmm3<-glmer(RangeLtoH~AgeGroup+Treatment+ (1|Clutch), family=gaussian(link = "identity"), data=data)
-glmm4<-glmer(RangeLtoH~AgeGroup*Treatment+ (1|Clutch), family=gaussian(link = "identity"), data=data)
+glmm1<-glmer(RangeLtoH~Age.day+ (1|Clutch), family=gaussian(link = "identity"), data=data2018)
+glmm2<-glmer(RangeLtoH~Stimulus+ (1|Clutch), family=gaussian(link = "identity"), data=data2018)
+glmm3<-glmer(RangeLtoH~Age.day+Stimulus+ (1|Clutch), family=gaussian(link = "identity"), data=data2018)
+glmm4<-glmer(RangeLtoH~Age.day*Stimulus+ (1|Clutch), family=gaussian(link = "identity"), data=data2018)
 
 glmms<-list(glmm1, glmm2, glmm3, glmm4)
 #aictab(glms)
@@ -743,40 +723,40 @@ Anova(glmm4)
 Here we plot the latencies for the first embryo in each tray to hatch: 
 
 ```{r}
-LtoH_younger_errorstats<-
-  younger %>%
-  group_by(Treatment) %>%
+LtoH_younger_errorstats2018<-
+  younger2018 %>%
+  group_by(Stimulus) %>%
   summarize(count = n(),
             mean = mean(RangeLtoH, na.rm=T),
             SD = sd(RangeLtoH, na.rm=T), 
             SE = sd(RangeLtoH, na.rm=T)/sqrt(n())
             )
-LtoH_younger_errorstats$AgeGroup <- "5"
-kable(LtoH_younger_errorstats,title="Mean & SD & SE",digits=3)
+LtoH_younger_errorstats2018$AgeGroup <- "5"
+kable(LtoH_younger_errorstats2018,title="Mean & SD & SE",digits=3)
 
-LtoH_older_errorstats<-
-  older %>%
-  group_by(Treatment) %>%
+LtoH_older_errorstats2018<-
+  older2018 %>%
+  group_by(Stimulus) %>%
   summarize(count = n(),
             mean = mean(RangeLtoH, na.rm=T),
             SD = sd(RangeLtoH, na.rm=T), 
             SE = sd(RangeLtoH, na.rm=T)/sqrt(n())
             )
-LtoH_older_errorstats$AgeGroup <- "6"
-kable(LtoH_older_errorstats,title="Mean & SD & SE",digits=3)
+LtoH_older_errorstats2018$AgeGroup <- "6"
+kable(LtoH_older_errorstats2018,title="Mean & SD & SE",digits=3)
 ```
 
 Now we can make the plot! 
 
 ```{r}
-LtoH_combined_errorstats<- rbind(LtoH_younger_errorstats, LtoH_older_errorstats)
+LtoH_combined_errorstats2018<- rbind(LtoH_younger_errorstats2018, LtoH_older_errorstats2018)
 ```
 
 The following code creates our figure (for the mean latency to hatch of the eggs that hatching per tray)
 ```{r}
-ggplot(data=LtoH_combined_errorstats, aes(x=AgeGroup, y=mean, colour=Treatment)) + 
+ggplot(data=LtoH_combined_errorstats2018, aes(x=Age.day, y=mean, colour=Stimulus)) + 
   geom_point(size=3) +
-  geom_errorbar(data=LtoH_combined_errorstats, aes(ymin=mean-SE, ymax=mean+SE), width=0.05)+
+  geom_errorbar(data=LtoH_combined_errorstats2018, aes(ymin=mean-SE, ymax=mean+SE), width=0.05)+
   theme_bw(20)+
   ylab("Range of Latencies (seconds)\n")+
   xlab("\n Age (d)")
@@ -784,20 +764,8 @@ ggplot(data=LtoH_combined_errorstats, aes(x=AgeGroup, y=mean, colour=Treatment))
 
 
 ```{r}
-scary<-subset(data, Treatment=="1 to 30", na.rm=T)
-ambig<-subset(data, Treatment=="1 to 200", na.rm=T)
-nonscary<-subset(data, Treatment=="30 to 300", na.rm=T)
-
-scary_younger<-subset(scary, AgeGroup==5, na.rm=T)
-scary_older<-subset(scary, AgeGroup==6, na.rm=T)
-ambig_younger<-subset(ambig, AgeGroup==5, na.rm=T)
-ambig_older<-subset(ambig, AgeGroup==6, na.rm=T)
-nonscary_younger<-subset(nonscary, AgeGroup==5, na.rm=T)
-nonscary_older<-subset(nonscary, AgeGroup==6, na.rm=T)
-
-mean(scary_older$RangeLtoH, na.rm=T)
-se(scary_older$RangeLtoH, na.rm=T)
-
+mean(mt_older$RangeLtoH, na.rm=T)
+se(mt_older$RangeLtoH, na.rm=T)
 ```
 > The shortest latency times were for the LF stimulus (younger: 39.5 ± 10.1 s; older 18.6 ± 1.9 s), 
  while latencies for the LS stimulus included the fewest cycles of the vibration pattern 
