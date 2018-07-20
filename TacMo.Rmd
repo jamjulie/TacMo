@@ -294,7 +294,7 @@ glmm2<-glmer(cbind(Hatch.primary,Test.eggs.primary)~Stimulus+ (1|Clutch), family
 glmm3<-glmer(cbind(Hatch.primary,Test.eggs.primary)~Age.day+Stimulus+ (1|Clutch), family=binomial(logit), data=data2018, control=glmerControl(optimizer="bobyqa"))
 glmm4<-glmer(cbind(Hatch.primary,Test.eggs.primary)~Age.day*Stimulus+ (1|Clutch), family=binomial(logit), data=data2018, control=glmerControl(optimizer="bobyqa")) ###
 glmm5<-glmer(cbind(Hatch.primary,Test.eggs.primary)~Age.day*Stimulus+ (1|Clutch/Tray), family=binomial(logit), data=data2018, control=glmerControl(optimizer="bobyqa"))
-glmm6<-glmer(cbind(Hatch.primary,Test.eggs.primary)~Age.day*Stimulus+ (1|Date)+(1|Clutch/Tray), family=binomial(logit), data=data2018, control=glmerControl(optimizer="bobyqa"))
+glmm6<-glmer(cbind(Hatch.primary,Test.eggs.primary)~Age.day*Stimulus+ (1|Date)+(1|Clutch/Tray), family=binomial(logit), data=data2018, control=glmerControl(optimizer="bobyqa"))###########
 glmm7<-glmer(cbind(Hatch.primary,Test.eggs.primary)~Age.day*Stimulus+ (1|Age.day/Clutch), family=binomial(logit), data=data2018, control=glmerControl(optimizer="bobyqa"))
 
 # bb1<-betabin(cbind(Hatch.primary,Test.eggs.primary)~Stimulus, ~1, data=hatching_data)
@@ -309,11 +309,24 @@ AIC(glmm5)
 AIC(glmm6) ###*
 AIC(glmm7)
 
-anova(glmm0,glmm6)
-Anova(glmm6)
-summary(glmm4)
-```
+glmm0<-glmer(cbind(Hatch.primary,Test.eggs.primary)~1 +(1|Date) +(1|Clutch/Tray), family=binomial(logit), data=data2018, control=glmerControl(optimizer="bobyqa"))
+glmm1<-glmer(cbind(Hatch.primary,Test.eggs.primary)~Age.day+(1|Date) +(1|Clutch/Tray), family=binomial(logit), data=data2018, control=glmerControl(optimizer="bobyqa"))
+glmm2<-glmer(cbind(Hatch.primary,Test.eggs.primary)~Stimulus+(1|Date) +(1|Clutch/Tray), family=binomial(logit), data=data2018, control=glmerControl(optimizer="bobyqa"))
+glmm3<-glmer(cbind(Hatch.primary,Test.eggs.primary)~Age.day+Stimulus+(1|Date) +(1|Clutch/Tray), family=binomial(logit), data=data2018, control=glmerControl(optimizer="bobyqa"))
+glmm4<-glmer(cbind(Hatch.primary,Test.eggs.primary)~Age.day*Stimulus +(1|Date), family=binomial(logit), data=data2018, control=glmerControl(optimizer="bobyqa"))
+glmm5<-glmer(cbind(Hatch.primary,Test.eggs.primary)~Age.day*Stimulus+ (1|Clutch/Tray), family=binomial(logit), data=data2018, control=glmerControl(optimizer="bobyqa"))
+glmm6<-glmer(cbind(Hatch.primary,Test.eggs.primary)~Age.day*Stimulus +(1|Date) +(1|Clutch/Tray), family=binomial(logit), data=data2018, control=glmerControl(optimizer="bobyqa"))###########
 
+anova(glmm0,glmm1) #Age effect - 1.151e-11 ***
+anova(glmm0,glmm2) #Stimulus effect - 0.0002467 ***
+#anova(glmm1,glmm3) #Stimulus effect - 4.521e-05 ***
+#anova(glmm2,glmm3) #Age effect - 2.038e-12 ***
+anova(glmm3,glmm6) #interaction effect - 0.0001138 ***
+anova(glmm4,glmm6) # clutch/tray random effect - 0.9786
+anova(glmm5,glmm6) # date random effect - 0.00435 **
+
+Anova(glmm6) #Age: 8.16e-14 ***   - Stim: 9.43e-05 ***    - Interaction: 0.0001156 ***
+```
 
 > Age, stimulus, and their interaction affected the hatching response of embryos in playbacks (Fig. 6A). Older embryos hatched more than did younger ones (binomial GLMM with clutch as a random effect, age effect: χ2 = 58.661, df = 1, P=1.873e-14), and the LF stimulus elicited the strongest hatching response (stimulus effect: χ2 = 58.648, df = 2, P=1.839e-13). However, the significant age × stimulus interaction revealed that the developmental increase in hatching was not uniform across stimuli (interaction effect: χ2 = 12.362, df = 2, P = 0.002069). 
 
@@ -360,6 +373,64 @@ temp<-glmer(cbind(Hatch.primary,Test.eggs.primary)~Stimulus+ (1|Clutch), family=
 Anova(temp)
 ```
 > Younger embryos showed equally little response to both the HF and LS stimuli but a substantial hatching response to the LF stimulus (Fig. 6A, stimulus effect: χ2 = 57.57, df = 2, P < 0.0001; HF–LS contrast χ2  = 1.48, P = 0.22; (HF+LS)–LF contrast χ2 = 370 56.75, P < 0.0001). In contrast, older embryos showed similarly strong hatching responses to both LF and LS stimuli and a weaker response to the HF stimulus (stimulus effect: χ2 = 73.84, df = 2, P < 0.0001; LF–LS contrast χ2 = 2.46, P = 0.12; (LF+LS)–HF contrast χ2 = 71.61, P < 0.0001). 
+
+Here we want to see which stim are different from which others WITHIN younger and older treatments
+
+```{r}
+hist(log(younger2018$PH.primary))
+hist(older2018$PH.primary)
+hist(data2018$PH.primary)
+```
+
+Here let's subset the data into 5 categories: 
+1. Motion only - all motion only
+2. Tactile - contact (primary)
+3. Tactile - NC (should be low hatching)
+4. Motion & Tactile - contact (primary)
+5. Motion & Tactile - NC (should be same as M-only)
+
+```{r, warning=FALSE}
+Mo_young<-subset(younger2018, Stimulus=="M-only", na.rm=T)
+Tac_young<-subset(younger2018, Stimulus=="T-only", na.rm=T)
+TacMo_young<-subset(younger2018, Stimulus=="M+T", na.rm=T)
+
+Mo_old<-subset(older2018, Stimulus=="M-only", na.rm=T)
+Tac_old<-subset(older2018, Stimulus=="T-only", na.rm=T)
+TacMo_old<-subset(older2018, Stimulus=="M+T", na.rm=T)
+```
+
+YOUNGER COMPARISONS: Non parametric so i should use the wilcoxon rank sums test
+```{r}
+wtest<-wilcox.test(as.numeric(Mo_young$PH.primary), as.numeric(Tac_young$PH.primary), mu = 0, alt="two.sided", paired = F, conf.int=T, conf.level=0.99)
+qnorm(wtest$p.value) #z-value to report
+wtest
+
+wtest<-wilcox.test(as.numeric(Mo_young$PH.primary), as.numeric(TacMo_young$PH.primary), mu = 0, alt="two.sided", paired = F, conf.int=T, conf.level=0.99)
+qnorm(wtest$p.value) #z-value to report
+wtest
+
+wtest<-wilcox.test(as.numeric(Tac_young$PH.primary), as.numeric(TacMo_young$PH.primary), mu = 0, alt="two.sided", paired = F, conf.int=T, conf.level=0.99)
+qnorm(wtest$p.value) #z-value to report
+wtest
+```
+
+OLDER COMPARISONS: Non parametric so i should use the wilcoxon rank sums test
+```{r}
+wtest<-wilcox.test(as.numeric(Mo_old$PH.primary), as.numeric(Tac_old$PH.primary), mu = 0, alt="two.sided", paired = F, conf.int=T, conf.level=0.99)
+qnorm(wtest$p.value) #z-value to report
+wtest
+
+wtest<-wilcox.test(as.numeric(Mo_old$PH.primary), as.numeric(TacMo_old$PH.primary), mu = 0, alt="two.sided", paired = F, conf.int=T, conf.level=0.99)
+qnorm(wtest$p.value) #z-value to report
+wtest
+
+wtest<-wilcox.test(as.numeric(Tac_old$PH.primary), as.numeric(TacMo_old$PH.primary), mu = 0, alt="two.sided", paired = F, conf.int=T, conf.level=0.99)
+qnorm(wtest$p.value) #z-value to report
+wtest
+```
+
+The amount of elapsed between 25% hatched to 75% hatched for all eventually hatched hatched embryos in a clutch (25%–75% hatching period) was not statistically different for S3 and S4 (Wilcoxon test: Z = , P = ); i.e., embryos did not hatch more or less synchronously. As embryos did not start hatching until after the gap in S4, removing the gap from S4 made no difference in the comparison to S3 for the 25%–75% hatching timespan.
+
 
 ## Results, part III: Latency Analysis
 
