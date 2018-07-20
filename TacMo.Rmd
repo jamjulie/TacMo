@@ -429,8 +429,6 @@ qnorm(wtest$p.value) #z-value to report
 wtest
 ```
 
-The amount of elapsed between 25% hatched to 75% hatched for all eventually hatched hatched embryos in a clutch (25%–75% hatching period) was not statistically different for S3 and S4 (Wilcoxon test: Z = , P = ); i.e., embryos did not hatch more or less synchronously. As embryos did not start hatching until after the gap in S4, removing the gap from S4 made no difference in the comparison to S3 for the 25%–75% hatching timespan.
-
 
 ## Results, part III: Latency Analysis
 
