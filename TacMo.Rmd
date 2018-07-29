@@ -7,40 +7,16 @@ output:
     toc: true
     toc_depth: 4
     toc_float: true
+editor_options: 
+  chunk_output_type: console
 ---
-
-# Welcome, friends!
-
-Please go forth and scroll down to begin your journey though my data analysis for the TacMo experiment of 2017 and 2018. 
-
-## Introduction
-
-<img src="img/IMG_1697.JPG" width="300px"/> <img src="img/IMG_1666.JPG" width="300px"/>
-
-Red-eyed treefrogs, *Agalychnis callidryas* (pictured above as an adult and a juvenile), commonly lay their eggs (pictured below left) on leafy substrate overhanging tropical ponds . 
-
-<img src="img/IMG_1615.JPG" width="300px"/> <img src="img/IMG_6958.JPG" width="300px"/>
-
-These arboreal embryos can hatch prematurely to escape from egg predators, such as the parrot snake (pictured above right), cued by vibrations in attacks. 
-
-It is known that young embryos modulate hatching based on multiple frequency and temporal properties of cues, reducing false alarms that unnecessarily expose them to risk in the water. 
-
-## Methods
-
-<img src="img/IMG_2121.JPG" width="300px"/>
-
-### Code preparation
-
-#### File logistics
-
-First, we will clear the environment and set our working directory: 
 
 ```{r}
 rm(list=ls()) #clear environment
 setwd('/Users/juliejung/Documents/GitHub/TacMo') #set working directory       
 ```
 
-#### User Defined Functions
+# User Defined Functions
 
 Here we'll define some functions that will help us later. The following function will give us the mode: 
 
@@ -57,7 +33,7 @@ stderr <- function(vec) #std dev/sample size
 }
 ```
 
-#### Load packages
+# Load packages
 
 Here, we install and load packages that we'll need later on in the code. 
 NOTE: uncomment as needed. 
@@ -94,12 +70,386 @@ library("xlsx")
 Next, we want to read in the relevant datafile (from the data-reanalysis-assignment repo) and show a few lines of raw data in your output (e.g., using head()).
 
 ```{r}
-#f <- curl("https://raw.githubusercontent.com/jamjulie/data-reanalysis-assignment/master/WarkentinJungRuedaMcDaniel-DataForDeposit.csv")
-#data <- read.csv(f, header = TRUE, sep = ",", stringsAsFactors = TRUE)
 data2017 <- read.csv(file="TacMo_2017_Jung20180714_clean.csv")
 head(data2017)
 ```
 
+Results, part I
+
+Now that we've gone through all our preparations, we can run analyses and report replicated results! The following results follow the order of presented results in the paper (pdf in repo).  
+
+First, we will check there are at least 5 eggs per tray. 
+
+```{r}
+min(data2017$Test.eggs.primary, na.rm=T) 
+```
+
+Now let's look at the structure of our data, and make sure the variables are defined as we want them to be defined. 
+
+```{r, warning=FALSE}
+str(data2017)
+#data$ProportionHatched<-as.numeric(as.character(data$ProportionHatched))
+#data$Date<-as.factor(data$Date)
+```
+
+Here let's subset the data into 2 age groups: younger and older. 
+
+```{r, warning=FALSE}
+younger2017<-subset(data2017, Age.day==4, na.rm=T)
+older2017<-subset(data2017, Age.day==5, na.rm=T)
+```
+
+Since the paper reports the mode of stages for each age category, let's find that: 
+
+```{r}
+youngerstages2017<- rbind(younger2017$Stage1, younger2017$Stage2, younger2017$Stage3)
+olderstages2017<- rbind(older2017$Stage1, older2017$Stage2, older2017$Stage3)
+range(youngerstages2017)
+range(olderstages2017)
+Mode(youngerstages2017)
+Mode(olderstages2017)
+
+#Mode(younger2017$Stage.avg)
+#Mode(older2017$Stage.avg)
+```
+
+> Younger embryos showed a range of stages from 20 to 31 while older embryos had 29 to 34 (N = 63 and 63; modes: 29 and 31).
+
+
+## Proportion Hatched
+
+Summarize the data
+
+Here we'll create a table summary of statistics for hatching rates (in proportion hatched) for each age category, grouped by stimulus treatment. We use the {dplyr} package to summarize our data. 
+
+```{r}
+younger_errorstats2017<-
+  younger2017 %>%
+  group_by(Stimulus) %>%
+  summarize(count = n(),
+            mean = mean(PH.primary),
+            SD = sd(PH.primary), 
+            SE = sd(PH.primary)/sqrt(n())
+            )
+younger_errorstats2017$AgeGroup <- 4
+kable(younger_errorstats2017,title="Mean & SD & SE",digits=3)
+
+older_errorstats2017<-
+  older2017 %>%
+  group_by(Stimulus) %>%
+  summarize(count = n(),
+            mean = mean(PH.primary),
+            SD = sd(PH.primary), 
+            SE = sd(PH.primary)/sqrt(n())
+            )
+older_errorstats2017$AgeGroup <- 5
+kable(older_errorstats2017,title="Mean & SD & SE",digits=3)
+```
+
+Should we use parametric or non-parametric tests?
+
+```{r}
+hist(data2017$Stage.avg) # non parametric probably?
+plot(density(data2017$Stage.avg)) # non parametric yes
+qqnorm(data2017$Stage.avg); qqline(data2017$Stage.avg, col = 2) # mhm non parametric definitely
+shapiro.test(data2017$Stage.avg) # mhm non parametric definitely (<0.05)
+```
+The output of the shapiro-wilk test tells us that it's safe to reject the null hypothesis, which is that the distribution is normal.
+
+We'll use mann-whitney-wilcoxon test because our 2 data samples (younger and older) are independent/come from distinct populations, so the samples do not affect each other. 
+
+Also because our data are non-parametric. 
+
+```{r, warning=FALSE}
+wtest<-wilcox.test(data2017$Stage.avg~data2017$Age.day, mu = 0, alt="two.sided", paired = F, conf.int=T, conf.level=0.95)
+qnorm(wtest$p.value) #z-value to report
+wtest
+```
+
+CHANGE INFO BELOW (i copy pasted from another script)
+> Younger embryos showed a range of stages from intact yolks to curved furrows while older embryos had straight furrows to full coils (N = 39 and 42; modes: straight furrow(1) and full coil(3); Wilcoxon test, Z=6.606223, P =1.97e-11). 
+
+
+Embryos also hatched spontaneously between test ages, so we want to calculate some means and SEs for spontaneous hatching before the test period. 
+
+```{r}
+mean(younger2017$Already.H)
+se(younger2017$Already.H)
+mean(older2017$Already.H)
+se(older2017$Already.H)
+```
+
+CHANGE THIS TEXT
+> From trays tested, more of the older embryos had hatched spontaneously before the test period (0.9 ± 0.1 vs. 0.5 ± 0.1 embryos per tray). 
+
+Since the data are non-parametric, we'll perform a mann-whitney test: 
+
+```{r}
+hist(log(data2017$Already.H)) #non-parametric, even when log transformed --> use a mann-whitney
+wtest<-wilcox.test(data2017$Already.H~data2017$Age.day, mu = 0, alt="two.sided", paired = F, conf.int=T, conf.level=0.95)
+qnorm(wtest$p.value) #z-value to report
+wtest
+```
+
+CHANGE THIS TEXT
+> From trays tested, more of the older embryos had hatched spontaneously before the test period (0.9 ± 0.1 vs. 0.5 ± 0.1 embryos per tray; Wilcoxon test, Z=2.439, P = 0.0074) and relatively fewer of the trays with older eggs had sufficient individuals to attempt setup (KMW unquantified personal observation). 
+
+
+Now we'll look at the number of embryos that hatched at set up: 
+
+```{r}
+mean(younger2017$H.in.setup)
+se(younger2017$H.in.setup)
+mean(older2017$H.in.setup)
+se(older2017$H.in.setup)
+```
+CHANGE THIS TEXT
+> More of the older embryos hatched during setup and acclimation (2.5 ± 0.3 vs. 0.9 ± 0.2 per tray). 
+
+Since the data are non-parametric, we'll perform a mann-whitney test: 
+
+```{r}
+hist(data2017$H.in.setup)#non-parametric, mann-whitney
+wtest<-wilcox.test(data2017$H.in.setup~data2017$Age.day, mu = 0, alt="two.sided", paired = F, conf.int=T, conf.level=0.95)
+qnorm(wtest$p.value) #z-value to report
+wtest
+```
+
+CHANGE THIS TEXT
+> More of the older embryos hatched during setup and acclimation (2.5 ± 0.3 vs. 0.9 ± 0.2 per tray; Wilcoxon test, Z=404.5, P = 5.085e-5). 
+
+We want to calculate some means and ses for the number of test eggs per tray in older vs. younger. 
+
+```{r}
+#smaller number of test eggs per tray in older than younger
+mean(younger2017$Test.eggs.primary)
+se(younger2017$Test.eggs.primary)
+mean(older2017$Test.eggs.primary)
+se(older2017$Test.eggs.primary)
+
+min(younger2017$Test.eggs.primary)
+max(younger2017$Test.eggs.primary)
+min(older2017$Test.eggs.primary)
+max(older2017$Test.eggs.primary)
+```
+CHANGE THIS TEXT
+> This resulted in smaller numbers of test eggs per tray (older 11.5 ± 0.3, younger 13.5 ± 0.2, range 8–15 at both ages). 
+
+Since the data are non-parametric, we'll perform a mann-whitney test: 
+
+```{r}
+hist(data2017$Test.eggs.primary)#non-parametric, mann-whitney
+wtest<-wilcox.test(data2017$Test.eggs.primary~data2017$Age.day, mu = 0, alt="two.sided", paired = F, conf.int=T, conf.level=0.95)
+qnorm(wtest$p.value) #z-value to report
+wtest
+```
+CHANGE THIS TEXT ACCORDINGLY
+> This resulted in smaller numbers of test eggs per tray (Wilcoxon test, Z=4.361872, P =6.448e-6; older 11.5 ± 0.3, younger 13.5 ± 0.2, range 8–15 at both ages). 
+
+Results, part II: Visualizations
+
+Next, we want to know whether age, stimulus, and/or their interaction affected the hatching response of embryos in playbacks 
+
+We'll do this by performing a binomial GLMM: 
+```{r}
+glmm0<-glmer(cbind(Hatch.primary,Test.eggs.primary)~1 + (1|Clutch), family=binomial(logit), data=data2017, control=glmerControl(optimizer="bobyqa"))
+glm4<-glm(cbind(Hatch.primary,Test.eggs.primary)~Age.day*Stimulus, family=binomial(logit), data=data2017)
+glmm1<-glmer(cbind(Hatch.primary,Test.eggs.primary)~Age.day+ (1|Clutch), family=binomial(logit), data=data2017, control=glmerControl(optimizer="bobyqa"))
+glmm2<-glmer(cbind(Hatch.primary,Test.eggs.primary)~Stimulus+ (1|Clutch), family=binomial(logit), data=data2017, control=glmerControl(optimizer="bobyqa"))
+glmm3<-glmer(cbind(Hatch.primary,Test.eggs.primary)~Age.day+Stimulus+ (1|Clutch), family=binomial(logit), data=data2017, control=glmerControl(optimizer="bobyqa"))
+glmm4<-glmer(cbind(Hatch.primary,Test.eggs.primary)~Age.day*Stimulus+ (1|Clutch), family=binomial(logit), data=data2017, control=glmerControl(optimizer="bobyqa")) ###
+glmm5<-glmer(cbind(Hatch.primary,Test.eggs.primary)~Age.day*Stimulus+ (1|Clutch/Tray), family=binomial(logit), data=data2017, control=glmerControl(optimizer="bobyqa"))
+glmm6<-glmer(cbind(Hatch.primary,Test.eggs.primary)~Age.day*Stimulus+ (1|Date)+(1|Clutch/Tray), family=binomial(logit), data=data2017, control=glmerControl(optimizer="bobyqa"))###########
+glmm7<-glmer(cbind(Hatch.primary,Test.eggs.primary)~Age.day*Stimulus+ (1|Age.day/Clutch), family=binomial(logit), data=data2017, control=glmerControl(optimizer="bobyqa"))
+
+# bb1<-betabin(cbind(Hatch.primary,Test.eggs.primary)~Stimulus, ~1, data=hatching_data)
+
+#To avoid a warning of nonconvergence, we specify a different optimizer with the argument control=glmerControl(optimizer="bobyqa"). Although the model will produce nearly identical results without the new argument, we prefer to use models without such warnings.
+AIC(glm4)
+AIC(glmm1)
+AIC(glmm2)
+AIC(glmm3)
+AIC(glmm4)
+AIC(glmm5)
+AIC(glmm6) ###*
+AIC(glmm7)
+
+glmm0<-glmer(cbind(Hatch.primary,Test.eggs.primary)~1 +(1|Date) +(1|Clutch/Tray), family=binomial(logit), data=data2017, control=glmerControl(optimizer="bobyqa"))
+glmm1<-glmer(cbind(Hatch.primary,Test.eggs.primary)~Age.day+(1|Date) +(1|Clutch/Tray), family=binomial(logit), data=data2017, control=glmerControl(optimizer="bobyqa"))
+glmm2<-glmer(cbind(Hatch.primary,Test.eggs.primary)~Stimulus+(1|Date) +(1|Clutch/Tray), family=binomial(logit), data=data2017, control=glmerControl(optimizer="bobyqa"))
+glmm3<-glmer(cbind(Hatch.primary,Test.eggs.primary)~Age.day+Stimulus+(1|Date) +(1|Clutch/Tray), family=binomial(logit), data=data2017, control=glmerControl(optimizer="bobyqa"))
+glmm4<-glmer(cbind(Hatch.primary,Test.eggs.primary)~Age.day*Stimulus +(1|Date), family=binomial(logit), data=data2017, control=glmerControl(optimizer="bobyqa"))
+glmm5<-glmer(cbind(Hatch.primary,Test.eggs.primary)~Age.day*Stimulus+ (1|Clutch/Tray), family=binomial(logit), data=data2017, control=glmerControl(optimizer="bobyqa"))
+glmm6<-glmer(cbind(Hatch.primary,Test.eggs.primary)~Age.day*Stimulus +(1|Date) +(1|Clutch/Tray), family=binomial(logit), data=data2017, control=glmerControl(optimizer="bobyqa"))###########
+
+anova(glmm0,glmm1) #Age effect - 1.151e-11 ***
+anova(glmm0,glmm2) #Stimulus effect - 0.0002467 ***
+#anova(glmm1,glmm3) #Stimulus effect - 4.521e-05 ***
+#anova(glmm2,glmm3) #Age effect - 2.038e-12 ***
+anova(glmm3,glmm6) #interaction effect - 0.0001138 ***
+anova(glmm4,glmm6) # clutch/tray random effect - 0.9786
+anova(glmm5,glmm6) # date random effect - 0.00435 **
+
+Anova(glmm6) #Age: 8.16e-14 ***   - Stim: 9.43e-05 ***    - Interaction: 0.0001156 ***
+```
+
+> Age, stimulus, and their interaction affected the hatching response of embryos in playbacks (Fig. 6A). Older embryos hatched more than did younger ones (binomial GLMM with clutch as a random effect, age effect: χ2 = 58.661, df = 1, P=1.873e-14), and the LF stimulus elicited the strongest hatching response (stimulus effect: χ2 = 58.648, df = 2, P=1.839e-13). However, the significant age × stimulus interaction revealed that the developmental increase in hatching was not uniform across stimuli (interaction effect: χ2 = 12.362, df = 2, P = 0.002069). 
+
+This is the plot for our proportion hatched data (Figure 6 in paper)
+
+We can use ggplot to create a much pretty plot, with standard errors. 
+
+```{r}
+younger_errorstats2017$AgeGroup<-as.factor(younger_errorstats2017$AgeGroup)
+older_errorstats2017$AgeGroup<-as.factor(older_errorstats2017$AgeGroup)
+combined_errorstats2017<- rbind(younger_errorstats2017, older_errorstats2017)
+```
+
+The following code creates our figure:
+```{r}
+ggplot(data=combined_errorstats2017, aes(x=AgeGroup, y=mean, colour=Stimulus)) + 
+  geom_point(size=3) +
+  geom_errorbar(data=combined_errorstats2017, aes(ymin=mean-SE, ymax=mean+SE), width=0.05)+
+  cowplot::theme_cowplot() +
+  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank())+
+  scale_y_continuous(limits = c(0, 1)) +
+  ylab("Proportion of tray hatched\n")+
+  xlab("\n Age (d)")
+
+```
+
+## Latency to Hatch
+
+Because risk in predator attacks probably accrues as a function of time, 
+but information from temporal properties accrues as a function of cycles 
+we conducted analyses of latency measured both in time (seconds) 
+and in cycles (dividing time by the cycle length of the stimulus). 
+
+```{r}
+#min(data2017$Con1, na.rm=T)
+#max(data2017$Con1, na.rm=T)
+```
+> In trays where hatching occurred, the latency until the first embryo hatched ranged from 9–420 s. 
+
+Are our data parametric?
+
+```{r}
+hist(data2017$Con1) #nonparametric
+hist(log(data2017$Con1)) #parametric!
+```
+Since they are, we can use ANOVAs of log-transformed data to test for 
+effects of age, stimulus and age-by-stimulus interaction 
+on the latency to hatch. 
+
+```{r}
+# IN SECONDS, Anova
+aov1 <- aov(log(Con1) ~ Age.day*Stimulus, data=data2017)
+summary(aov1)
+```
+> Latency varied among stimuli and decreased with age, with a marginally non-significant interaction effect (Fig. 6B,C). This pattern held whether measuring latency in seconds or in cycles of vibration (seconds: age, F1,58 = 39.52, P < 0.0001; stimulus, F2,58 = 13.72, P < 0.0001; interaction, F2,58 = 2.91, P = 0.0625; cycles: age, F1,58 = 49.54, P < 0.0001; stimulus, F2,58 = 71.89, P < 0.0001; interaction, F2,58 = 2.91, P = 0.0625).
+
+Alternatively, we can use GLMs: 
+
+```{r}
+# IN SECONDS, GLM METHOD
+glmm1<-glmer(Con1~Age.day+ (1|Clutch), family=gaussian(link = "identity"), data=data2017)
+glmm2<-glmer(Con1~Stimulus+ (1|Clutch), family=gaussian(link = "identity"), data=data2017)
+glmm3<-glmer(Con1~Age.day+Stimulus+ (1|Clutch), family=gaussian(link = "identity"), data=data2017)
+glmm4<-glmer(Con1~Age.day*Stimulus+ (1|Clutch), family=gaussian(link = "identity"), data=data2017)
+
+glmms<-list(glmm1, glmm2, glmm3, glmm4)
+#aictab(glms)
+
+Anova(glmm4)
+```
+
+Here we plot the latencies for the first embryo in each tray to hatch: 
+
+```{r}
+LtoH_younger_errorstats2017<-
+  younger2017 %>%
+  group_by(Stimulus) %>%
+  summarize(count = n(),
+            mean = mean(Con1, na.rm=T),
+            SD = sd(Con1, na.rm=T), 
+            SE = sd(Con1, na.rm=T)/sqrt(n())
+            )
+LtoH_younger_errorstats2017$AgeGroup <- "4"
+kable(LtoH_younger_errorstats2017,title="Mean & SD & SE",digits=3)
+
+LtoH_older_errorstats2017<-
+  older2017 %>%
+  group_by(Stimulus) %>%
+  summarize(count = n(),
+            mean = mean(Con1, na.rm=T),
+            SD = sd(Con1, na.rm=T), 
+            SE = sd(Con1, na.rm=T)/sqrt(n())
+            )
+LtoH_older_errorstats2017$AgeGroup <- "5"
+kable(LtoH_older_errorstats2017,title="Mean & SD & SE",digits=3)
+```
+
+Now we can make the plot! 
+
+```{r}
+LtoH_combined_errorstats2017<- rbind(LtoH_younger_errorstats2017, LtoH_older_errorstats2017)
+```
+
+The following code creates our figure:
+```{r}
+ggplot(data=LtoH_combined_errorstats2017, aes(x=AgeGroup, y=mean, colour=Stimulus)) + 
+  geom_point(size=3) +
+  geom_errorbar(data=LtoH_combined_errorstats2017, aes(ymin=mean-SE, ymax=mean+SE), width=0.05)+
+  theme_bw(20)+
+  ylab("Latency to hatch (seconds)\n")+
+  xlab("\n Age (d)")
+```
+
+
+
+```{r}
+str(data2017)
+MotionOnly<-subset(data2017, Stimulus=="M-only", na.rm=T)
+TactileOnly<-subset(data2017, Stimulus=="T-only", na.rm=T)
+MotionTactile<-subset(data2017, Stimulus=="M+T", na.rm=T)
+
+motion_younger<-subset(MotionOnly, Age.day==4, na.rm=T)
+motion_older<-subset(MotionOnly, Age.day==5, na.rm=T)
+tactile_younger<-subset(TactileOnly, Age.day==4, na.rm=T)
+tactile_older<-subset(TactileOnly, Age.day==5, na.rm=T)
+mt_younger<-subset(MotionTactile, Age.day=4, na.rm=T)
+mt_older<-subset(MotionTactile, Age.day==5, na.rm=T)
+
+mean(mt_older$Con1, na.rm=T)
+se(mt_older$Con1, na.rm=T)
+
+```
+> The shortest latency times were for the LF stimulus (younger: 39.5 ± 10.1 s; older 18.6 ± 1.9 s), 
+ while latencies for the LS stimulus included the fewest cycles of the vibration pattern 
+(younger: 6.5 ± 1.6; older: 1.9 ± 0.3 cycles). 
+
+
+We conducted analyses of latency both on the subset of trays from which at least one individual hatched and also on the full dataset, assigning a latency of 600 s (i.e., the full playback plus post-playback observation period) to trays in which no embryos hatched.
+
+```{r}
+
+# IN SECONDS, Anova
+aov1 <- aov(Con1_600 ~ Age.day*Stimulus, data=data2017) ##create this column
+summary(aov1)
+
+# IN SECONDS, GLM METHOD
+glmm1<-glmer(Con1_600~Age.day+ (1|Clutch), family=gaussian(link = "identity"), data=data2017)
+glmm2<-glmer(Con1_600~Stimulus+ (1|Clutch), family=gaussian(link = "identity"), data=data2017)
+glmm3<-glmer(Con1_600~Age.day+Stimulus+ (1|Clutch), family=gaussian(link = "identity"), data=data2017)
+glmm4<-glmer(Con1_600~Age.day*Stimulus+ (1|Clutch), family=gaussian(link = "identity"), data=data2017)
+
+glmms<-list(glmm1, glmm2, glmm3, glmm4)
+#aictab(glms)
+
+Anova(glmm4)
+```
+
+> If we assign a latency of 600 s to trays in which no embryos hatched, age and stimulus effects remain strong and the interaction effect is much weaker (latency in seconds: age, F1,75 = 27.98, P < 0.0001; stimulus, F2,75 = 7.77, P = 0.0009; interaction F2,75 = 0.75, P = 0.47). 
 
 # 2018 TacMo Data
 
@@ -112,7 +462,7 @@ data2018 <- read.csv(file="TacMo_2018_Jung20180714_clean.csv")
 head(data2018)
 ```
 
-## Results, part I
+Results, part I
 
 Now that we've gone through all our preparations, we can run analyses and report replicated results! The following results follow the order of presented results in the paper (pdf in repo).  
 
@@ -153,7 +503,9 @@ Mode(olderstages2018)
 
 > Younger embryos showed a range of stages from 20 to 31 while older embryos had 29 to 34 (N = 63 and 63; modes: 29 and 31).
 
-#### Summarize the data
+
+## Proportion Hatched
+Summarize the data
 
 Here we'll create a table summary of statistics for hatching rates (in proportion hatched) for each age category, grouped by stimulus treatment. We use the {dplyr} package to summarize our data. 
 
@@ -281,7 +633,7 @@ wtest
 CHANGE THIS TEXT ACCORDINGLY
 > This resulted in smaller numbers of test eggs per tray (Wilcoxon test, Z=4.361872, P =6.448e-6; older 11.5 ± 0.3, younger 13.5 ± 0.2, range 8–15 at both ages). 
 
-## Results, part II: Visualizations
+Results, part II: Visualizations
 
 Next, we want to know whether age, stimulus, and/or their interaction affected the hatching response of embryos in playbacks 
 
@@ -353,11 +705,12 @@ The following code creates our figure:
 ggplot(data=combined_errorstats2018, aes(x=AgeGroup, y=mean, colour=Stimulus)) + 
   geom_point(size=3) +
   geom_errorbar(data=combined_errorstats2018, aes(ymin=mean-SE, ymax=mean+SE), width=0.05)+
-  theme_bw(20)+
+  cowplot::theme_cowplot() +
+  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank())+
+  scale_y_continuous(limits = c(0, 1)) +
   ylab("Proportion of tray hatched\n")+
   xlab("\n Age (d)")
-  #annotate("text", x = 1, y = 0.2, label = "N=##")+
-  #annotate("text", x = 2, y = 0.4, label = "N=##")
+
 ```
 
 Moving on: Here we perform separate binomial GLMs at each age, with grouped categories of treatment stimuli. 
@@ -430,7 +783,7 @@ wtest
 ```
 
 
-## Results, part III: Latency Analysis
+## Latency to Hatch
 
 Because risk in predator attacks probably accrues as a function of time, 
 but information from temporal properties accrues as a function of cycles 
@@ -563,7 +916,7 @@ Anova(glmm4)
 
 > If we assign a latency of 600 s to trays in which no embryos hatched, age and stimulus effects remain strong and the interaction effect is much weaker (latency in seconds: age, F1,75 = 27.98, P < 0.0001; stimulus, F2,75 = 7.77, P = 0.0009; interaction F2,75 = 0.75, P = 0.47). 
 
-## MEAN Latency of ALL eggs, not just the first to hatch
+### MEAN Latency of ALL eggs, not just the first to hatch
 
 ```{r}
 min(data2018$MeanLtoH, na.rm=T)
@@ -655,7 +1008,7 @@ se(mt_older$MeanLtoH, na.rm=T)
  while latencies for the LS stimulus included the fewest cycles of the vibration pattern 
 (younger: 6.5 ± 1.6; older: 1.9 ± 0.3 cycles). 
 
-## MEDIAN Latency of ALL eggs, not just the first to hatch
+### MEDIAN Latency of ALL eggs, not just the first to hatch
 
 ```{r}
 min(data2018$MedianLtoH, na.rm=T)
@@ -747,7 +1100,7 @@ se(mt_older$MedianLtoH, na.rm=T)
  while latencies for the LS stimulus included the fewest cycles of the vibration pattern 
 (younger: 6.5 ± 1.6; older: 1.9 ± 0.3 cycles). 
 
-## RANGE Latency of ALL eggs, not just the first to hatch
+### RANGE Latency of ALL eggs, not just the first to hatch
 
 ```{r}
 min(data2018$RangeLtoH, na.rm=T)
@@ -841,8 +1194,8 @@ se(mt_older$RangeLtoH, na.rm=T)
 (younger: 6.5 ± 1.6; older: 1.9 ± 0.3 cycles). 
 
 
-## Discussion 
+#### Discussion 
 Older embryos showed lower latency to hatch, indicating less cue sampling, and more hatching overall. Their similarly high responses to two of the stimuli suggest they ceased to discriminate using slow-to-assess properties as indicators of safety; however, they showed little hatching if either frequency spectrum or a fast temporal pattern allowed rapid assessment of low risk. 
 
-## Conclusion
+#### Conclusion
 Developmental changes in behavior due to ontogenetic adaptation of decision processes are likely to be widespread. Vibration-cued hatching allows us to use the power of playback experiments to improve our understanding of the development of adaptive embryo behavior.
